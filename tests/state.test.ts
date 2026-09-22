@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { detectInitState, type ElementState } from "../src/lib/state.js";
+import { detectInitState, fileStatus, type ElementState } from "../src/lib/state.js";
 
 const ALL_PATHS = [
   "docs",
@@ -108,5 +108,17 @@ describe("detectInitState", () => {
     expect(state.elements[2]?.status).toBe("exists");
     expect(state.elements[3]?.status).toBe("exists");
     expect(state.hasConflict).toBe(false);
+  });
+});
+
+describe("fileStatus (spec 005)", () => {
+  it("distingue missing / exists / conflict sobre archivo y directorio", async () => {
+    expect(await fileStatus(join(root, "constitution.md"))).toBe("missing");
+
+    await writeFile(join(root, "constitution.md"), "principios");
+    expect(await fileStatus(join(root, "constitution.md"))).toBe("exists");
+
+    await mkdir(join(root, "agents"));
+    expect(await fileStatus(join(root, "agents"))).toBe("conflict");
   });
 });

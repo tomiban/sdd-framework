@@ -337,6 +337,28 @@ describe("initialize", () => {
     await expectPathNotExists("docs/constitution.md");
   });
 
+  it("constitución ilegible: error con la ruta, sin stack trace (borde de lectura)", async () => {
+    if (process.getuid?.() === 0) {
+      return;
+    }
+    for (const path of ALL_PATHS) {
+      await mkdir(join(root, path), { recursive: true });
+    }
+    await writeFile(join(root, "docs/constitution.md"), "principios");
+    await chmod(join(root, "docs/constitution.md"), 0o000);
+    try {
+      const result = await initialize({ root, args: [] });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.exitCode).toBe(1);
+        expect(result.message).toContain("Error: no se pudo leer docs/constitution.md:");
+      }
+    } finally {
+      await chmod(join(root, "docs/constitution.md"), 0o644);
+    }
+  });
+
   it("AGENTS.md sin permiso de escritura: error al actualizar (RF-7, CL-8)", async () => {
     if (process.getuid?.() === 0) {
       return;

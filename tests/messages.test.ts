@@ -37,6 +37,7 @@ import {
   notInitializedError,
   phaseSuccess,
   phaseTitle,
+  readError,
   specAmbiguous,
   specNotFound,
   structureLine,
@@ -109,12 +110,15 @@ describe("messages compartidos (renombrado A7)", () => {
 });
 
 describe("messages de init: constitución y AGENTS.md (spec 005)", () => {
-  it("fileConflictError y appendError", () => {
+  it("fileConflictError, appendError y readError", () => {
     expect(fileConflictError("docs/constitution.md")).toBe(
       "Error: docs/constitution.md ya existe y no es un archivo.",
     );
     expect(appendError("AGENTS.md", "EACCES")).toBe(
       "Error: no se pudo actualizar AGENTS.md: EACCES",
+    );
+    expect(readError("docs/constitution.md", "EACCES")).toBe(
+      "Error: no se pudo leer docs/constitution.md: EACCES",
     );
   });
 

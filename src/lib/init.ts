@@ -16,6 +16,7 @@ import {
   fileCreatedLine,
   fileExistsLine,
   initTitle,
+  readError,
   successMessage,
   usageError,
   writeError,
@@ -44,18 +45,6 @@ const CITES_PATTERN = /constitution\.md/i;
 
 type ConstitutionStatus = "created" | "exists" | "empty";
 type AgentsStatus = "absent" | "cited" | "appended";
-
-async function readText(absolutePath: string): Promise<string | null> {
-  try {
-    return await readFile(absolutePath, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-}
-
 /**
  * Ejecuta `sdd init` (RF-1…RF-11 de la spec 001; RF-1…RF-8 de la spec 005,
  * que sustituye los bloques de salida de los RF-5/RF-6). Precondiciones en el
@@ -92,14 +81,31 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
 
   let constitutionText = "";
   if (constitutionFile === "exists") {
-    constitutionText = (await readText(constitutionAbs)) ?? "";
+    // Archivo ilegible → error con ruta, jamás stack trace (borde de lectura).
+    try {
+      constitutionText = await readFile(constitutionAbs, "utf8");
+    } catch (error) {
+      return {
+        ok: false,
+        message: readError(CONSTITUTION_PATH, (error as Error).message),
+        exitCode: 1,
+      };
+    }
   }
   const constitutionEmpty = constitutionFile === "exists" && constitutionText.trim() === "";
 
   // RF-4 / RF-5 (005): la regla se añade una sola vez (QA A3, NFR-5).
   let agentsText = "";
   if (agentsFile === "exists") {
-    agentsText = (await readText(agentsAbs)) ?? "";
+    try {
+      agentsText = await readFile(agentsAbs, "utf8");
+    } catch (error) {
+      return {
+        ok: false,
+        message: readError(AGENTS_PATH, (error as Error).message),
+        exitCode: 1,
+      };
+    }
   }
   const needAgentsRule = agentsFile === "exists" && !CITES_PATTERN.test(agentsText);
 

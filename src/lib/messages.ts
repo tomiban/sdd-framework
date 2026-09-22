@@ -268,3 +268,7 @@ export function agentsCitedLine(): string {
 export function appendError(path: string, detail: string): string {
   return `Error: no se pudo actualizar ${path}: ${detail}`;
 }
+
+export function readError(path: string, detail: string): string {
+  return `Error: no se pudo leer ${path}: ${detail}`;
+}
