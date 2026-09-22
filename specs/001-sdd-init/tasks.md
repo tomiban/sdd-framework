@@ -37,10 +37,10 @@
   segunda ejecución).
 
 **Hecho cuando:**
-- [ ] Todos los strings visibles viven en `src/lib/messages.ts` (sin literales de texto en otros
+- [x] Todos los strings visibles viven en `src/lib/messages.ts` (sin literales de texto en otros
   módulos)
-- [ ] Los bloques exactos de la spec (RF-5 y RF-6) se reproducen concatenando las funciones
-- [ ] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
+- [x] Los bloques exactos de la spec (RF-5 y RF-6) se reproducen concatenando las funciones
+- [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
 
 ## T3 — Lógica de inicialización
 
@@ -65,11 +65,11 @@
   no comprueba escritura (funciona con cwd de solo lectura).
 
 **Hecho cuando:**
-- [ ] `initialize` crea solo lo que falta y respeta lo existente (verificado en tmp dirs)
-- [ ] Precondiciones en orden del QA A3: argumentos → conflicto → escribibilidad (solo si hay algo
+- [x] `initialize` crea solo lo que falta y respeta lo existente (verificado en tmp dirs)
+- [x] Precondiciones en orden del QA A3: argumentos → conflicto → escribibilidad (solo si hay algo
   que crear)
-- [ ] Segunda ejecución consecutiva → `ok: true`, `exitCode 0`, sin efectos destructivos (NFR-4)
-- [ ] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
+- [x] Segunda ejecución consecutiva → `ok: true`, `exitCode 0`, sin efectos destructivos (NFR-4)
+- [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
 
 ## T4 — CLI, salida y binario
 
@@ -86,7 +86,7 @@
     documentar en el código (decisión D9: el comando por defecto del CLI es `init`).
 
 **Hecho cuando:**
-- [ ] `node dist/index.js init` reproduce exactamente los bloques RF-5 y RF-6 con `$? == 0` (doble
+- [x] `node dist/index.js init` reproduce exactamente los bloques RF-5 y RF-6 con `$? == 0` (doble
   ejecución)
-- [ ] Argumentos extra → stderr + `$? == 1` sin crear nada
-- [ ] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
+- [x] Argumentos extra → stderr + `$? == 1` sin crear nada
+- [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
