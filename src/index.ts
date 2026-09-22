@@ -2,6 +2,7 @@
 import { initialize } from "./lib/init.js";
 import { unknownCommandError } from "./lib/messages.js";
 import { createSpec } from "./lib/new.js";
+import { createPhaseFile } from "./lib/phases.js";
 
 type CliResult =
   | { readonly ok: true; readonly lines: readonly string[]; readonly exitCode: 0 }
@@ -25,6 +26,8 @@ if (command === "init") {
 } else if (command === "new") {
   const [slug, ...extra] = rest;
   print(await createSpec({ root: process.cwd(), slug: slug ?? "", args: extra }));
+} else if (command === "plan" || command === "tasks") {
+  print(await createPhaseFile({ root: process.cwd(), phase: command, args: rest }));
 } else {
   process.stderr.write(`${unknownCommandError(command)}\n`);
   process.exitCode = 1;

@@ -3,20 +3,20 @@ import { copyFile, mkdir, readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  createFileError,
+  existsError,
+  fileCreatedLine,
   newCreatedDir,
-  newCreatedFile,
-  newExists,
   newExtraArgs,
   newInvalidSlug,
   newLimit,
   newMissingSlug,
-  newNotInitialized,
   newSuccess,
   newTitle,
-  newWriteError,
+  notInitializedError,
 } from "./messages.js";
 import { isValidSlug, nextSpecNumber, specDirName } from "./spec.js";
-import { TEMPLATES, resolveTemplateSource } from "./templates.js";
+import { resolveTemplateSource, templatesFor } from "./templates.js";
 
 export interface NewOptions {
   readonly root: string;
@@ -32,12 +32,12 @@ export type NewResult =
   | { readonly ok: false; readonly message: string; readonly exitCode: 1 };
 
 /**
- * Ejecuta `sdd new <slug>` (RF-1…RF-10). Precondiciones en el orden de QA A1:
- * 1) slug vacío → uso; 2) args extra → uso; 3) slug inválido → formato;
- * 4) `specs/` inexistente → sugerir `sdd init`; 5) destino existente → «ya
- * existe»; 6) crear/copiar con rollback (QA A5). El contenido del `spec.md`
- * se copia desde el template centralizado (constitución #3), nunca desde
- * strings del código.
+ * Ejecuta `sdd new <slug>` (RF-1…RF-10, spec 002). Precondiciones en el orden
+ * de QA A1: 1) slug vacío → uso; 2) args extra → uso; 3) slug inválido →
+ * formato; 4) `specs/` inexistente → sugerir `sdd init`; 5) destino existente →
+ * «ya existe»; 6) crear/copiar con rollback (QA A5). El contenido del
+ * `spec.md` se copia desde el template centralizado (constitución #3), nunca
+ * desde strings del código.
  */
 export async function createSpec(options: NewOptions): Promise<NewResult> {
   if (options.slug === "") {
@@ -59,11 +59,11 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT" || code === "ENOTDIR") {
-      return { ok: false, message: newNotInitialized(), exitCode: 1 };
+      return { ok: false, message: notInitializedError(), exitCode: 1 };
     }
     return {
       ok: false,
-      message: newWriteError("specs", (error as Error).message),
+      message: createFileError("specs", (error as Error).message),
       exitCode: 1,
     };
   }
@@ -78,7 +78,7 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
   if (existingSpec !== undefined) {
     return {
       ok: false,
-      message: newExists(`specs/${existingSpec.name}`, existingSpec.isDirectory()),
+      message: existsError(`specs/${existingSpec.name}`, existingSpec.isDirectory()),
       exitCode: 1,
     };
   }
@@ -95,14 +95,14 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
     const destInfo = await stat(destDir);
     return {
       ok: false,
-      message: newExists(`specs/${dirName}`, destInfo.isDirectory()),
+      message: existsError(`specs/${dirName}`, destInfo.isDirectory()),
       exitCode: 1,
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       return {
         ok: false,
-        message: newWriteError(`specs/${dirName}`, (error as Error).message),
+        message: createFileError(`specs/${dirName}`, (error as Error).message),
         exitCode: 1,
       };
     }
@@ -113,13 +113,13 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
   } catch (error) {
     return {
       ok: false,
-      message: newWriteError(`specs/${dirName}`, (error as Error).message),
+      message: createFileError(`specs/${dirName}`, (error as Error).message),
       exitCode: 1,
     };
   }
 
   try {
-    for (const entry of TEMPLATES) {
+    for (const entry of templatesFor("new")) {
       const source = options.templatePath ?? resolveTemplateSource(entry.source);
       await copyFile(source, join(destDir, entry.dest));
     }
@@ -134,7 +134,7 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
     }
     return {
       ok: false,
-      message: newWriteError(`specs/${dirName}/spec.md`, (error as Error).message),
+      message: createFileError(`specs/${dirName}/spec.md`, (error as Error).message),
       exitCode: 1,
     };
   }
@@ -147,7 +147,7 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
       newTitle(),
       "",
       newCreatedDir(dirPath),
-      newCreatedFile(filePath),
+      fileCreatedLine(filePath),
       "",
       newSuccess(dirPath),
     ],

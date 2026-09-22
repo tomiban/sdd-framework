@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { findTemplate, resolveTemplateSource, TEMPLATES } from "../src/lib/templates.js";
+import { resolveTemplateSource, TEMPLATES, templatesFor } from "../src/lib/templates.js";
 
-const SECTIONS = [
+const SPEC_SECTIONS = [
   "## Contexto y objetivo",
   "## Usuarios / actores",
   "## Historias de usuario",
@@ -16,25 +16,47 @@ const SECTIONS = [
   "## Criterios de finalización",
 ];
 
+const PLAN_SECTIONS = [
+  "## 0. Cambios de persistencia",
+  "## 1. Resolución de ambigüedades",
+  "## 2. Decisiones técnicas",
+  "## 3. Modelo de datos y contratos",
+  "## 4. Estrategia de tests",
+  "## 5. Cobertura",
+];
+
+const TASKS_SECTIONS = ["## T1 —", "**RF:**", "**Hecho cuando:**"];
+
 describe("templates", () => {
-  it("el manifiesto declara el spec.md (constitución #3)", () => {
-    expect(TEMPLATES).toEqual([{ dest: "spec.md", source: "spec.md" }]);
+  it("el manifiesto etiqueta cada entrada con su fase (constitución #3, QA A10)", () => {
+    expect(TEMPLATES).toEqual([
+      { phase: "new", dest: "spec.md", source: "spec.md" },
+      { phase: "plan", dest: "plan.md", source: "plan.md" },
+      { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
+    ]);
   });
 
-  it("findTemplate resuelve el entry por destino", () => {
-    expect(findTemplate("spec.md")).toEqual({ dest: "spec.md", source: "spec.md" });
-    expect(findTemplate("no-existe")).toBeUndefined();
+  it("templatesFor devuelve solo las entradas de cada fase", () => {
+    expect(templatesFor("new")).toEqual([{ phase: "new", dest: "spec.md", source: "spec.md" }]);
+    expect(templatesFor("plan")).toEqual([{ phase: "plan", dest: "plan.md", source: "plan.md" }]);
+    expect(templatesFor("tasks")).toEqual([{ phase: "tasks", dest: "tasks.md", source: "tasks.md" }]);
   });
 
-  it("el template existe y contiene las 8 secciones de la plantilla SDD", async () => {
-    const url = resolveTemplateSource("spec.md");
+  it("cada template existe y contiene sus secciones", async () => {
+    for (const [source, sections] of [
+      ["spec.md", SPEC_SECTIONS],
+      ["plan.md", PLAN_SECTIONS],
+      ["tasks.md", TASKS_SECTIONS],
+    ] as const) {
+      const url = resolveTemplateSource(source);
 
-    const info = await stat(fileURLToPath(url));
-    expect(info.isFile()).toBe(true);
+      const info = await stat(fileURLToPath(url));
+      expect(info.isFile(), `template: ${source}`).toBe(true);
 
-    const content = await readFile(url, "utf8");
-    for (const section of SECTIONS) {
-      expect(content, `sección: ${section}`).toContain(section);
+      const content = await readFile(url, "utf8");
+      for (const section of sections) {
+        expect(content, `sección ${source}: ${section}`).toContain(section);
+      }
     }
   });
 });

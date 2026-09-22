@@ -36,3 +36,39 @@ export function nextSpecNumber(entries: readonly string[]): NextSpecNumberResult
 export function specDirName(nnn: string, slug: string): string {
   return `${nnn}-${slug}`;
 }
+
+/**
+ * Normaliza un id de spec a `NNN` (RF-3/RF-4, spec 003): acepta de 1 a 3
+ * dígitos y rellena con ceros a la izquierda (`3` → `003`); cualquier otra
+ * cosa (incluido el nombre completo `NNN-slug`) es inválido (CL-2).
+ */
+export function parseSpecId(input: string): string | null {
+  if (!/^\d{1,3}$/.test(input)) {
+    return null;
+  }
+  return input.padStart(3, "0");
+}
+
+export type FindSpecDirResult =
+  | { readonly ok: true; readonly dir: string }
+  | {
+      readonly ok: false;
+      readonly reason: "missing" | "ambiguous";
+      readonly matches: readonly string[];
+    };
+
+/**
+ * Resuelve el directorio `specs/NNN-*` (RF-3, spec 003): único → ok; ninguno →
+ * missing; varios → ambiguous listándolos sin elegir ninguno (CL-3).
+ */
+export function findSpecDir(entries: readonly string[], nnn: string): FindSpecDirResult {
+  const matches = entries.filter((entry) => entry.startsWith(`${nnn}-`)).sort();
+  const first = matches[0];
+  if (first === undefined) {
+    return { ok: false, reason: "missing", matches };
+  }
+  if (matches.length > 1) {
+    return { ok: false, reason: "ambiguous", matches };
+  }
+  return { ok: true, dir: first };
+}
