@@ -14,7 +14,7 @@ proyecto, no persistencia de la aplicación.
 | A3 | Varias specs con el mismo número (creadas a mano) | Error de ambigüedad que lista los directorios; nunca se elige uno implícitamente. | RF-3, CL-3 |
 | A4 | ¿Qué marca que una fase existe? | La existencia del **archivo** de esa fase (`spec.md`, `plan.md`, `tasks.md`). Prerequisitos por fase: `plan` exige `spec.md`; `tasks` exige `spec.md` y `plan.md`, comprobados en ese orden (falla por lo más fundamental primero). | RF-7, CL-5 |
 | A5 | Fallo de copia: ¿qué se limpia? | Rollback del **archivo destino** que este comando haya empezado a escribir (no hay directorio propio: el directorio de la spec ya existía). Si el rollback falla, se reporta el error original. | RF-10, CL-9 |
-| A6 | RF-12 cambia el mensaje de comando desconocido fijado por la spec 001 | Se actualiza el mensaje y los tests de la 001 que lo asertaban (los tests son código, evolucionan). La spec 001 no se modifica: queda como histórico y la 003 documenta la sustitución. | RF-12 |
+| A6 | RF-12 cambia el mensaje de comando desconocido fijado en la implementación de la spec 001 | Se actualiza el mensaje y su única aserción (`tests/messages.test.ts`; ningún test de la 001 lo asertaba, aclarado por H-1). La spec 001 no se modifica: queda como histórico y la 003 documenta la sustitución. | RF-12 |
 | A7 | Mensajería compartida con nombres `new*` (`newNotInitialized`, `newExists`, `newWriteError`, `newCreatedFile`) usada ahora por más comandos | Renombrado neutro: `notInitializedError`, `existsError(path, isDirectory?)`, `createFileError(path, detail)`, `fileCreatedLine(path)`. Se actualizan las referencias de los tests 001/002; los textos no cambian (salvo RF-12). | NFR-2 |
 | A8 | ¿`createPhaseFile` valida también los argumentos? | Sí, mismo orden de A1 (defensa en profundidad además del dispatch del CLI) y acepta `templatePath` inyectable para testear el fallo de copia (CL-9). | RF-4, RF-5, RF-10 |
 | A9 | Título y mensaje final difieren por fase («plan» vs «tareas») | Mensajes derivados del tipo `Phase` (`"plan" \| "tasks"`): `phaseTitle`, `phaseSuccess`; el nombre de archivo sale de la config de fases. | RF-9 |
@@ -95,8 +95,8 @@ proyecto, no persistencia de la aplicación.
   ambigua; `plan` sin `spec.md`; `tasks` sin `plan.md` (y sin ambos → falla por `spec.md`); destino
   como directorio (barra final) y como archivo (sin barra); `specs/` como archivo → init sugerido;
   rollback con `templatePath` inexistente (destino no queda); flujo completo CL-11.
-- `tests/messages.test.ts` (+): mensajes de fase y RF-12; `tests/init.test.ts` actualiza el mensaje
-  de comando desconocido (A6).
+- `tests/messages.test.ts` (+): mensajes de fase y la aserción exacta del RF-12 (único test que lo
+  aserta; `tests/init.test.ts` no lo asertaba — corrección H-1).
 - E2E manual del binario (criterios 1–4) en tmp dir.
 
 ## 5. Cobertura
@@ -114,6 +114,16 @@ proyecto, no persistencia de la aplicación.
 | RF-9 | `messages.ts` + `phases.ts` | `tests/phases.test.ts` (bloques exactos) · `tests/messages.test.ts` |
 | RF-10 | `phases.ts` | `tests/phases.test.ts` (CL-8, CL-9 rollback) |
 | RF-11 | `index.ts` | exitCode asertado en todos los casos + E2E |
-| RF-12 | `messages.ts` + `index.ts` | `tests/messages.test.ts` · `tests/init.test.ts` (actualizado) + E2E |
+| RF-12 | `messages.ts` + `index.ts` | `tests/messages.test.ts` (aserción exacta) + E2E |
 
 Todos los RF quedan cubiertos por las tareas T1–T4 (ver `tasks.md`).
+
+## 6. Resoluciones de la validación (fase 6)
+
+| # | Hallazgo | Resolución |
+|---|----------|------------|
+| H-1 (baja) | Deriva plan↔tests: §4/§5 citaban `tests/init.test.ts` como asertor del mensaje de comando desconocido, pero nunca lo asertó (la aserción real y suficiente está en `tests/messages.test.ts`) | §4/§5 corregidos y A6 aclarado: la única aserción es la de `tests/messages.test.ts`. |
+| H-2 (baja) | §5 prometía test de fase para `specs/` inexistente (rama ENOENT) y solo existía el de `specs/` como archivo | Test añadido en `tests/phases.test.ts` (root sin `specs/` → `notInitializedError`). |
+| H-3 (baja) | Comentario invertido sobre la fuente del union `Phase`/`PhaseName` | Comentario corregido en `messages.ts`: el union vive ahí y `phases.ts` lo re-exporta como `Phase` (coincide con §3). |
+| H-4 (obs.) | RF-12: el mensaje sustituto se fijó en la implementación de la 001, no literalmente en su `spec.md` | Sin acción: la sustitución es real a nivel de código y la spec 001 queda intacta, como exige el RF. Redacción precisada en A6. |
+| H-5 (obs.) | CL-10 ejemplifica `000` y el test usaba `999` | Caso `000` añadido al test de spec inexistente en `tests/phases.test.ts`. |

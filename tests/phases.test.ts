@@ -120,6 +120,12 @@ describe("createPhaseFile", () => {
       message: "Error: no existe la spec 999.",
       exitCode: 1,
     });
+    // CL-10: `0` normaliza a `000`, válido pero sin spec: no se inventa nada.
+    expect(await createPhaseFile({ root, phase: "plan", args: ["0"] })).toEqual({
+      ok: false,
+      message: "Error: no existe la spec 000.",
+      exitCode: 1,
+    });
   });
 
   it("spec ambigua: error que lista los candidatos sin elegir (RF-3, CL-3)", async () => {
@@ -164,6 +170,18 @@ describe("createPhaseFile", () => {
   it("specs/ como archivo: error que sugiere sdd init, sin stack trace (RF-6, CL-7)", async () => {
     await rm(join(root, "specs"), { recursive: true });
     await writeFile(join(root, "specs"), "no soy un directorio");
+
+    const result = await createPhaseFile({ root, phase: "plan", args: ["002"] });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Error: proyecto no inicializado. Ejecuta primero: sdd init",
+      exitCode: 1,
+    });
+  });
+
+  it("proyecto sin specs/: error que sugiere sdd init (RF-6, validación H-2)", async () => {
+    await rm(join(root, "specs"), { recursive: true });
 
     const result = await createPhaseFile({ root, phase: "plan", args: ["002"] });
 

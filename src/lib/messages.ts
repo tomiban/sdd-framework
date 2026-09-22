@@ -95,7 +95,10 @@ export function newLimit(): string {
 
 // --- Mensajes de `sdd plan` / `sdd tasks` (spec 003) ---
 
-/** Fases documentales del flujo SDD (fuente única del tipo: `phases.ts`). */
+/**
+ * Fases documentales del flujo SDD. Fuente única del union; `phases.ts` lo
+ * re-exporta como `Phase` (contrato plan §3).
+ */
 export type PhaseName = "plan" | "tasks";
 
 export function phaseMissingId(command: PhaseName): string {
