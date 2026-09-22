@@ -6,6 +6,14 @@ import { createPhaseFile } from "./lib/phases.js";
 import { statusReport } from "./lib/status.js";
 import { validateSpec } from "./lib/validate.js";
 
+// `sdd … | head` cierra el pipe antes de tiempo: EPIPE debe terminar en
+// silencio, no con un stack trace (glue de CLI, sin lógica de negocio).
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on("error", (error) => {
+    process.exit((error as NodeJS.ErrnoException).code === "EPIPE" ? 0 : 1);
+  });
+}
+
 type CliResult =
   | { readonly ok: true; readonly lines: readonly string[]; readonly exitCode: 0 | 1 }
   | { readonly ok: false; readonly message: string; readonly exitCode: 1 };
