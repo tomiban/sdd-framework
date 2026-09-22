@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  agentsCitedLine,
+  agentsRuleAddedLine,
+  appendError,
   artifactsLine,
   configInvalid,
   configMissing,
   conflictError,
   constitutionEmpty,
+  constitutionEmptyWarn,
   constitutionLine,
   constitutionMissing,
   constitutionUncited,
@@ -14,7 +18,9 @@ import {
   createdLine,
   existsError,
   existsLine,
+  fileConflictError,
   fileCreatedLine,
+  fileExistsLine,
   idExtraArgsError,
   idInvalidError,
   idMissingError,
@@ -98,6 +104,27 @@ describe("messages compartidos (renombrado A7)", () => {
   it("existsError pone barra final solo a directorios (validación H4)", () => {
     expect(existsError("specs/002-x")).toBe("Error: ya existe specs/002-x/.");
     expect(existsError("specs/002-x", false)).toBe("Error: ya existe specs/002-x.");
+    expect(fileExistsLine("docs/constitution.md")).toBe("✓ docs/constitution.md ya existe");
+  });
+});
+
+describe("messages de init: constitución y AGENTS.md (spec 005)", () => {
+  it("fileConflictError y appendError", () => {
+    expect(fileConflictError("docs/constitution.md")).toBe(
+      "Error: docs/constitution.md ya existe y no es un archivo.",
+    );
+    expect(appendError("AGENTS.md", "EACCES")).toBe(
+      "Error: no se pudo actualizar AGENTS.md: EACCES",
+    );
+  });
+
+  it("constitutionEmptyWarn usa el glifo ⚠ (RF-2, QA A4)", () => {
+    expect(constitutionEmptyWarn()).toBe("⚠ docs/constitution.md ya existe pero está vacío");
+  });
+
+  it("agentsRuleAddedLine y agentsCitedLine", () => {
+    expect(agentsRuleAddedLine()).toBe("✓ Añadida la regla de constitución a AGENTS.md");
+    expect(agentsCitedLine()).toBe("✓ AGENTS.md ya cita docs/constitution.md");
   });
 });
 

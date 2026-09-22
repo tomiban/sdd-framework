@@ -43,3 +43,22 @@ export async function detectInitState(root: string): Promise<InitState> {
     hasConflict: elements.some((element) => element.status === "conflict"),
   };
 }
+
+export type FileStatus = "missing" | "exists" | "conflict";
+
+/**
+ * Estado de un ARCHIVO esperado (spec 005): `missing` (no existe), `exists`
+ * (es archivo) o `conflict` (existe pero no es archivo, p. ej. un directorio
+ * llamado `docs/constitution.md`).
+ */
+export async function fileStatus(absolutePath: string): Promise<FileStatus> {
+  try {
+    const info = await stat(absolutePath);
+    return info.isFile() ? "exists" : "conflict";
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return "missing";
+    }
+    throw error;
+  }
+}

@@ -3,7 +3,14 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { resolveTemplateSource, TEMPLATES, templatesFor } from "../src/lib/templates.js";
+import {
+  AGENTS_RULE_SOURCE,
+  resolveTemplateSource,
+  TEMPLATES,
+  templatesFor,
+} from "../src/lib/templates.js";
+
+const RULE = "- Lee `docs/constitution.md` y la spec activa en `specs/` antes de tocar código.";
 
 const SPEC_SECTIONS = [
   "## Contexto y objetivo",
@@ -33,6 +40,7 @@ describe("templates", () => {
       { phase: "new", dest: "spec.md", source: "spec.md" },
       { phase: "plan", dest: "plan.md", source: "plan.md" },
       { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
+      { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
     ]);
   });
 
@@ -40,6 +48,9 @@ describe("templates", () => {
     expect(templatesFor("new")).toEqual([{ phase: "new", dest: "spec.md", source: "spec.md" }]);
     expect(templatesFor("plan")).toEqual([{ phase: "plan", dest: "plan.md", source: "plan.md" }]);
     expect(templatesFor("tasks")).toEqual([{ phase: "tasks", dest: "tasks.md", source: "tasks.md" }]);
+    expect(templatesFor("init")).toEqual([
+      { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
+    ]);
   });
 
   it("cada template existe y contiene sus secciones", async () => {
@@ -58,5 +69,20 @@ describe("templates", () => {
         expect(content, `sección ${source}: ${section}`).toContain(section);
       }
     }
+  });
+
+  it("constitution.md: principios inexorables con «Verificable:» (spec 005)", async () => {
+    const content = await readFile(resolveTemplateSource("constitution.md"), "utf8");
+
+    expect(content).toContain("# Constitution — <nombre del proyecto>");
+    expect(content).toContain("1. **");
+    expect(content).toContain("6. **");
+    expect(content.match(/Verificable:/g)).toHaveLength(6);
+  });
+
+  it("agents-rule.md: línea exacta de la regla (spec 005, RF-4)", async () => {
+    const content = await readFile(resolveTemplateSource(AGENTS_RULE_SOURCE), "utf8");
+
+    expect(content).toBe(`${RULE}\n`);
   });
 });

@@ -10,6 +10,11 @@ export function fileCreatedLine(path: string): string {
   return `✓ Creado ${path}`;
 }
 
+export function fileExistsLine(path: string): string {
+  // A diferencia de `existsLine`, sin barra final: es un archivo (spec 005).
+  return `✓ ${path} ya existe`;
+}
+
 export function notInitializedError(): string {
   return "Error: proyecto no inicializado. Ejecuta primero: sdd init";
 }
@@ -240,4 +245,26 @@ export function verdesLine(results: readonly VerifyOutcome[]): string {
 
 export function verdictLine(name: string, ready: boolean): string {
   return `Spec ${name}: ${ready ? "LISTO" : "NO LISTO"}`;
+}
+
+// --- Mensajes de `sdd init`: constitución y AGENTS.md (spec 005) ---
+
+export function fileConflictError(path: string): string {
+  return `Error: ${path} ya existe y no es un archivo.`;
+}
+
+export function constitutionEmptyWarn(): string {
+  return "⚠ docs/constitution.md ya existe pero está vacío";
+}
+
+export function agentsRuleAddedLine(): string {
+  return "✓ Añadida la regla de constitución a AGENTS.md";
+}
+
+export function agentsCitedLine(): string {
+  return "✓ AGENTS.md ya cita docs/constitution.md";
+}
+
+export function appendError(path: string, detail: string): string {
+  return `Error: no se pudo actualizar ${path}: ${detail}`;
 }

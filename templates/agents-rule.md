@@ -1,0 +1,1 @@
+- Lee `docs/constitution.md` y la spec activa en `specs/` antes de tocar código.

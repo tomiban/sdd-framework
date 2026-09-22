@@ -1,4 +1,4 @@
-export type TemplatePhase = "new" | "plan" | "tasks";
+export type TemplatePhase = "new" | "plan" | "tasks" | "init";
 
 export interface TemplateEntry {
   /** Fase del flujo SDD que copia esta entrada (QA A10, spec 003). */
@@ -18,7 +18,14 @@ export const TEMPLATES: readonly TemplateEntry[] = [
   { phase: "new", dest: "spec.md", source: "spec.md" },
   { phase: "plan", dest: "plan.md", source: "plan.md" },
   { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
+  { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
 ] as const;
+
+/**
+ * Fuente de la regla que `sdd init` añade a un `AGENTS.md` existente (spec
+ * 005): es contenido de **append**, no una copia de plantilla (QA A8).
+ */
+export const AGENTS_RULE_SOURCE = "agents-rule.md";
 
 /** Entradas que copia cada fase: solo las suyas (QA A10). */
 export function templatesFor(phase: TemplatePhase): readonly TemplateEntry[] {
