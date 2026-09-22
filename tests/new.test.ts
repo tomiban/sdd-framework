@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -150,5 +150,60 @@ describe("createSpec", () => {
       expect(result.message).toContain("ENOENT");
     }
     expect(await readdir(join(root, "specs"))).toEqual(["001-sdd-init"]);
+  });
+
+  it("specs/ existe como archivo: error de proyecto no inicializado, sin stack trace (validación H1)", async () => {
+    await writeFile(join(root, "specs"), "no soy un directorio");
+
+    const result = await createSpec({ root, slug: "gastos", args: [] });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Error: proyecto no inicializado. Ejecuta primero: sdd init",
+      exitCode: 1,
+    });
+  });
+
+  it("destino existente como archivo: error «ya existe» sin barra final, sin tocar el archivo (RF-6, validación H4)", async () => {
+    await initSpecs();
+    await writeFile(join(root, "specs/002-gastos"), "contenido previo");
+
+    const result = await createSpec({ root, slug: "gastos", args: [] });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Error: ya existe specs/002-gastos.",
+      exitCode: 1,
+    });
+    expect(await readFile(join(root, "specs/002-gastos"), "utf8")).toBe("contenido previo");
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    "specs/ sin permiso de escritura: error con la ruta y nada creado (CL-7, validación H5)",
+    async () => {
+      await initSpecs();
+      await chmod(join(root, "specs"), 0o555);
+
+      const result = await createSpec({ root, slug: "gastos", args: [] });
+      await chmod(join(root, "specs"), 0o755);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.exitCode).toBe(1);
+        expect(result.message).toContain("Error: no se pudo crear specs/002-gastos:");
+      }
+      expect(await readdir(join(root, "specs"))).toEqual(["001-sdd-init"]);
+    },
+  );
+
+  it("sdd new init: slug válido sin conflicto con el comando init (CL-9, validación H7)", async () => {
+    await initSpecs();
+
+    const result = await createSpec({ root, slug: "init", args: [] });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.lines).toContain("✓ Creado specs/002-init/");
+    }
   });
 });

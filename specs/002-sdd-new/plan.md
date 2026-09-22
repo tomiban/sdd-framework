@@ -30,15 +30,17 @@ contenido del proyecto, no persistencia de la aplicación: sin base de datos ni 
   para ser testeable sin fs. Cubre RF-4, RF-5, CL-4, CL-6.
 - **D3** — Template centralizado (constitución #3): el contenido del `spec.md` generado vive en
   `templates/spec.md`; `src/lib/templates.ts` expone el manifiesto (`{ dest: "spec.md",
-  source: "spec.md" }`) y `resolveTemplatePath()` con `import.meta.url` (A4). El comando copia bytes;
-  no hay strings de contenido en el código. Cubre RF-7, NFR-4.
+  source: "spec.md" }`), `findTemplate(dest)` y `resolveTemplateSource(source)` con
+  `import.meta.url` (A4). El comando copia bytes; no hay strings de contenido en el código.
+  Cubre RF-7, NFR-4.
 - **D4** — `src/lib/new.ts`: `createSpec({ root, slug, args, templatePath? })` → `NewResult`
   (`{ ok, lines, exitCode }` | `{ ok: false, message, exitCode: 1 }`) siguiendo el orden de A1 y con
   rollback de A5. `templatePath` es inyectable para testear el fallo de copia. Cubre RF-1…RF-10.
 - **D5** — Mensajes nuevos en `src/lib/messages.ts` (módulo único, QA A10 de spec 001):
   `newTitle()`, `newCreatedDir(path)`, `newCreatedFile(path)`, `newSuccess(path)`,
-  `newMissingSlug()`, `newInvalidSlug(slug)`, `newNotInitialized()`, `newExists(path)`,
-  `newLimit()`, `newWriteError(path, detail)`. Cubre RF-2…RF-9, NFR-2.
+  `newMissingSlug()`, `newExtraArgs()`, `newInvalidSlug(slug)`, `newNotInitialized()`,
+  `newExists(path, isDirectory?)`, `newLimit()`, `newWriteError(path, detail)`.
+  Cubre RF-2…RF-9, NFR-2.
 - **D6** — El "número NNN" se calcula leyendo `specs/` del cwd (readdir) en `createSpec` y pasando
   los nombres a `nextSpecNumber`. Cubre RF-5, NFR-6.
 
@@ -57,7 +59,8 @@ contenido del proyecto, no persistencia de la aplicación: sin base de datos ni 
 // src/lib/templates.ts
 {
   "TemplateEntry": { "dest": "spec.md", "source": "spec.md" },
-  "resolveTemplatePath(entry): URL" // new URL("../../templates/<source>", import.meta.url)
+  "findTemplate(dest): TemplateEntry | undefined",
+  "resolveTemplateSource(source): URL" // new URL("../../templates/<source>", import.meta.url)
 }
 
 // src/lib/new.ts — NewResult
@@ -102,3 +105,15 @@ contenido del proyecto, no persistencia de la aplicación: sin base de datos ni 
 | RF-10 | `src/lib/new.ts` | todos los casos de `tests/new.test.ts` |
 
 Todos los RF quedan cubiertos por las tareas T1–T4 (ver `tasks.md`).
+
+## 6. Resoluciones de la validación (fase 6)
+
+| # | Hallazgo | Resolución |
+|---|----------|------------|
+| H1 (media) | `readdir(specs/)` sin captura: `specs/` como archivo (o ilegible) tiraba un stack trace de Node en inglés (ENOTDIR) | Captura en `new.ts`: `ENOENT`/`ENOTDIR` → `newNotInitialized()`; resto → `newWriteError("specs", …)`. RF-2 cubierto en ese borde. Test añadido. |
+| H2 (media) | Deriva de contrato: el plan/tasks decían `resolveTemplatePath(entry)` y el código exporta `resolveTemplateSource(source)` + `findTemplate(dest)` | Contrato real adoptado y reflejado en §3, D3 y tasks T2. |
+| H3 (baja) | `newExtraArgs()` ausente en la lista de mensajes de D5 | Añadido a D5. |
+| H4 (baja) | `newExists` añadía `/` también cuando la colisión es un archivo (RF-6 contempla esa modalidad) | `newExists(path, isDirectory?)`: barra final solo para directorios. Tests de ambos modos. |
+| H5 (baja) | CL-7 (permisos) y la rama defensiva `stat(destDir)` sin test automatizado | Tests añadidos: `chmod 555` sobre `specs/` (skip si root) y destino existente como archivo. |
+| H6 (obs.) | Encabezados del template repetidos en `tests/templates.test.ts` | Aceptado: es la aserción del criterio #5 (contenido copiado, no generado). |
+| H7 (obs.) | CL-9 (`sdd new init`) sin test unitario | Test añadido en `tests/new.test.ts`. |

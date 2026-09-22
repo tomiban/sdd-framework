@@ -1,3 +1,4 @@
+import type { Dirent } from "node:fs";
 import { copyFile, mkdir, readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -50,10 +51,14 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
   }
 
   const specsDir = join(options.root, "specs");
+  let dirents: readonly Dirent[];
   try {
-    await stat(specsDir);
+    // Cubre RF-2 y el borde «specs/ existe como archivo» (validación H1):
+    // ENOENT/ENOTDIR → sugerir `sdd init`; el resto → error con ruta.
+    dirents = await readdir(specsDir, { withFileTypes: true });
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
       return { ok: false, message: newNotInitialized(), exitCode: 1 };
     }
     return {
@@ -62,17 +67,20 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
       exitCode: 1,
     };
   }
-
-  const entries = await readdir(specsDir);
+  const entries = dirents.map((dirent) => dirent.name);
 
   // Criterio #2 de finalización: repetir el mismo slug es error «ya existe»
   // aunque el número cambie (RF-6). El slug ya está validado como
   // [a-z0-9-], así que no necesita escape para el patrón.
-  const existingSpec = entries.find((entry) =>
-    new RegExp(`^\\d{3}-${options.slug}$`).test(entry),
+  const existingSpec = dirents.find((dirent) =>
+    new RegExp(`^\\d{3}-${options.slug}$`).test(dirent.name),
   );
   if (existingSpec !== undefined) {
-    return { ok: false, message: newExists(`specs/${existingSpec}`), exitCode: 1 };
+    return {
+      ok: false,
+      message: newExists(`specs/${existingSpec.name}`, existingSpec.isDirectory()),
+      exitCode: 1,
+    };
   }
 
   const next = nextSpecNumber(entries);
@@ -84,8 +92,12 @@ export async function createSpec(options: NewOptions): Promise<NewResult> {
   const destDir = join(specsDir, dirName);
 
   try {
-    await stat(destDir);
-    return { ok: false, message: newExists(`specs/${dirName}`), exitCode: 1 };
+    const destInfo = await stat(destDir);
+    return {
+      ok: false,
+      message: newExists(`specs/${dirName}`, destInfo.isDirectory()),
+      exitCode: 1,
+    };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       return {

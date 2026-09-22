@@ -74,8 +74,10 @@ export function newNotInitialized(): string {
   return "Error: proyecto no inicializado. Ejecuta primero: sdd init";
 }
 
-export function newExists(path: string): string {
-  return `Error: ya existe ${path}/.`;
+export function newExists(path: string, isDirectory = true): string {
+  // RF-6 contempla colisión con directorio o archivo: la barra final solo
+  // aplica a directorios (validación H4).
+  return `Error: ya existe ${isDirectory ? `${path}/` : path}.`;
 }
 
 export function newLimit(): string {

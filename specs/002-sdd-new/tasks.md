@@ -28,15 +28,16 @@
   Usuarios/actores · Historias de usuario · Requisitos funcionales (EARS) · Requisitos no
   funcionales · Casos límite · Fuera de alcance · Criterios de finalización), con marcadores
   vacíos listos para rellenar; sin interpolación.
-- Crear `src/lib/templates.ts`: manifiesto `[{ dest: "spec.md", source: "spec.md" }]` y
-  `resolveTemplatePath(entry)` vía `new URL("../../templates/…", import.meta.url)` (funciona igual
+- Crear `src/lib/templates.ts`: manifiesto `[{ dest: "spec.md", source: "spec.md" }]`,
+  `findTemplate(dest)` y `resolveTemplateSource(source)` vía
+  `new URL("../../templates/…", import.meta.url)` (funciona igual
   desde `src/` y `dist/`; nunca relativo al cwd).
 - Tests `tests/templates.test.ts`: el path resuelto existe y su contenido contiene los encabezados
   `## ` de las 8 secciones.
 
 **Hecho cuando:**
 - [x] `templates/spec.md` existe con las 8 secciones de la plantilla SDD
-- [x] `resolveTemplatePath` apunta a un archivo real desde tests y desde `dist/` (verificar con el
+- [x] `resolveTemplateSource` apunta a un archivo real desde tests y desde `dist/` (verificar con el
   build)
 - [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
 

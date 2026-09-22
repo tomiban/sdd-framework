@@ -81,6 +81,7 @@ describe("messages new (spec 002)", () => {
   it("newNotInitialized, newExists, newLimit y newWriteError", () => {
     expect(newNotInitialized()).toBe("Error: proyecto no inicializado. Ejecuta primero: sdd init");
     expect(newExists("specs/002-x")).toBe("Error: ya existe specs/002-x/.");
+    expect(newExists("specs/002-x", false)).toBe("Error: ya existe specs/002-x.");
     expect(newLimit()).toBe("Error: límite de 999 specs alcanzado.");
     expect(newWriteError("specs/002-x", "ENOENT")).toBe("Error: no se pudo crear specs/002-x: ENOENT");
   });
