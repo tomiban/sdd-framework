@@ -3,6 +3,7 @@ import { initialize } from "./lib/init.js";
 import { unknownCommandError } from "./lib/messages.js";
 import { createSpec } from "./lib/new.js";
 import { createPhaseFile } from "./lib/phases.js";
+import { statusReport } from "./lib/status.js";
 import { validateSpec } from "./lib/validate.js";
 
 type CliResult =
@@ -31,6 +32,8 @@ if (command === "init") {
   print(await createPhaseFile({ root: process.cwd(), phase: command, args: rest }));
 } else if (command === "validate") {
   print(await validateSpec({ root: process.cwd(), args: rest }));
+} else if (command === "status") {
+  print(await statusReport({ root: process.cwd(), args: rest }));
 } else {
   process.stderr.write(`${unknownCommandError(command)}\n`);
   process.exitCode = 1;

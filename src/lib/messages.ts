@@ -63,9 +63,9 @@ export function createError(path: string, detail: string): string {
   return `Error: no se pudo crear ${path}/: ${detail}`;
 }
 
-// RF-12 (spec 003): sustituye al mensaje fijado por la spec 001.
+// RF-12 (spec 003), lista de comandos ampliada por la spec 007 (RF-6).
 export function unknownCommandError(command: string): string {
-  return `Error: comando no soportado: ${command}\nUso: sdd <comando> (init, new <slug>, plan <NNN>, tasks <NNN>)`;
+  return `Error: comando no soportado: ${command}\nUso: sdd <comando> (init, new <slug>, plan <NNN>, tasks <NNN>, status)`;
 }
 
 // --- Mensajes de `sdd new <slug>` (spec 002) ---
@@ -271,4 +271,52 @@ export function appendError(path: string, detail: string): string {
 
 export function readError(path: string, detail: string): string {
   return `Error: no se pudo leer ${path}: ${detail}`;
+}
+
+// --- Mensajes de `sdd status` (spec 007) ---
+
+export function statusTitle(): string {
+  return "Estado SDD…";
+}
+
+export function structureOk(roots: readonly string[]): string {
+  return `✓ Estructura: ${roots.join(" · ")}`;
+}
+
+export function notInitializedLine(): string {
+  return "✗ Proyecto sin inicializar. Ejecuta primero: sdd init";
+}
+
+export function structureIncomplete(missing: readonly string[]): string {
+  return `✗ Estructura incompleta: ${missing.length === 1 ? "falta" : "faltan"} ${missing.join(", ")}`;
+}
+
+export function constitutionStatusLine(present: boolean): string {
+  return present ? "✓ docs/constitution.md" : "✗ falta docs/constitution.md";
+}
+
+export function agentsStatusLine(present: boolean): string {
+  return present ? "✓ AGENTS.md" : "✗ falta AGENTS.md";
+}
+
+export function specStatusLine(
+  dir: string,
+  spec: boolean,
+  plan: boolean,
+  tasks: { readonly doneCount: number; readonly totalCount: number } | null,
+): string {
+  const tasksPart = tasks === null ? "tasks ✗" : `tasks ✓ ${tasks.doneCount}/${tasks.totalCount}`;
+  return `specs/${dir} — spec ${spec ? "✓" : "✗"} · plan ${plan ? "✓" : "✗"} · ${tasksPart}`;
+}
+
+export function noSpecsLine(): string {
+  return "sin specs todavía";
+}
+
+export function statusSummary(total: number, ready: number): string {
+  return `${total} ${total === 1 ? "spec" : "specs"} · ${ready} ${ready === 1 ? "lista" : "listas"}`;
+}
+
+export function statusUsageError(): string {
+  return "Error: argumentos no soportados.\nUso: sdd status";
 }

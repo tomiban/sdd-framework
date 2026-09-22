@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   agentsCitedLine,
   agentsRuleAddedLine,
+  agentsStatusLine,
   appendError,
   artifactsLine,
   configInvalid,
@@ -12,6 +13,7 @@ import {
   constitutionEmptyWarn,
   constitutionLine,
   constitutionMissing,
+  constitutionStatusLine,
   constitutionUncited,
   createError,
   createFileError,
@@ -34,15 +36,23 @@ import {
   newMissingSlug,
   newSuccess,
   newTitle,
+  noSpecsLine,
   notInitializedError,
+  notInitializedLine,
   phaseSuccess,
   phaseTitle,
   readError,
   specAmbiguous,
   specNotFound,
+  specStatusLine,
+  structureIncomplete,
   structureLine,
+  structureOk,
   structureRequiresSpec,
   successMessage,
+  statusSummary,
+  statusTitle,
+  statusUsageError,
   tasksLine,
   tasksRequiresFile,
   tasksStructureLine,
@@ -79,9 +89,9 @@ describe("messages", () => {
     expect(usageError()).toBe("Error: argumentos no soportados.\nUso: sdd init");
   });
 
-  it("unknownCommandError lista todos los comandos (RF-12, spec 003)", () => {
+  it("unknownCommandError lista todos los comandos (RF-12 spec 003, RF-6 spec 007)", () => {
     expect(unknownCommandError("foo")).toBe(
-      "Error: comando no soportado: foo\nUso: sdd <comando> (init, new <slug>, plan <NNN>, tasks <NNN>)",
+      "Error: comando no soportado: foo\nUso: sdd <comando> (init, new <slug>, plan <NNN>, tasks <NNN>, status)",
     );
   });
 
@@ -254,5 +264,45 @@ describe("messages de validate (spec 004)", () => {
     expect(verdesLine([{ command: "a", outcome: 3 }, { command: "b", outcome: "timeout" }])).toBe(
       "✗ Verdes: 0/2 comandos — a (exit 3) · b (timeout)",
     );
+  });
+});
+
+describe("messages de status (spec 007)", () => {
+  it("statusTitle, noSpecsLine y statusUsageError", () => {
+    expect(statusTitle()).toBe("Estado SDD…");
+    expect(statusTitle()).toContain("\u2026");
+    expect(noSpecsLine()).toBe("sin specs todavía");
+    expect(statusUsageError()).toBe("Error: argumentos no soportados.\nUso: sdd status");
+  });
+
+  it("estructura: completa, sin inicializar e incompleta con plurales (QA A3)", () => {
+    expect(structureOk(["docs/", "specs/", ".opencode/"])).toBe(
+      "✓ Estructura: docs/ · specs/ · .opencode/",
+    );
+    expect(notInitializedLine()).toBe("✗ Proyecto sin inicializar. Ejecuta primero: sdd init");
+    expect(structureIncomplete([".opencode/skills/"])).toBe(
+      "✗ Estructura incompleta: falta .opencode/skills/",
+    );
+    expect(structureIncomplete(["specs/", ".opencode/"])).toBe(
+      "✗ Estructura incompleta: faltan specs/, .opencode/",
+    );
+  });
+
+  it("constitutionStatusLine y agentsStatusLine", () => {
+    expect(constitutionStatusLine(true)).toBe("✓ docs/constitution.md");
+    expect(constitutionStatusLine(false)).toBe("✗ falta docs/constitution.md");
+    expect(agentsStatusLine(true)).toBe("✓ AGENTS.md");
+    expect(agentsStatusLine(false)).toBe("✗ falta AGENTS.md");
+  });
+
+  it("specStatusLine y statusSummary", () => {
+    expect(specStatusLine("001-x", true, true, { doneCount: 2, totalCount: 2 })).toBe(
+      "specs/001-x — spec ✓ · plan ✓ · tasks ✓ 2/2",
+    );
+    expect(specStatusLine("002-y", true, false, null)).toBe(
+      "specs/002-y — spec ✓ · plan ✗ · tasks ✗",
+    );
+    expect(statusSummary(1, 1)).toBe("1 spec · 1 lista");
+    expect(statusSummary(2, 0)).toBe("2 specs · 0 listas");
   });
 });
