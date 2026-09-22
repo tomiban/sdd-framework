@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  artifactsLine,
+  configInvalid,
+  configMissing,
   conflictError,
+  constitutionEmpty,
+  constitutionLine,
+  constitutionMissing,
+  constitutionUncited,
   createError,
   createFileError,
   createdLine,
   existsError,
   existsLine,
   fileCreatedLine,
+  idExtraArgsError,
+  idInvalidError,
+  idMissingError,
   initTitle,
   missingPlanFile,
   missingSpecFile,
@@ -19,16 +29,23 @@ import {
   newSuccess,
   newTitle,
   notInitializedError,
-  phaseExtraArgs,
-  phaseInvalidId,
-  phaseMissingId,
   phaseSuccess,
   phaseTitle,
   specAmbiguous,
   specNotFound,
+  structureLine,
+  structureRequiresSpec,
   successMessage,
+  tasksLine,
+  tasksRequiresFile,
+  tasksStructureLine,
+  traceLine,
+  traceRequiresSpec,
   unknownCommandError,
   usageError,
+  validateTitle,
+  verdictLine,
+  verdesLine,
   writeError,
 } from "../src/lib/messages.js";
 
@@ -105,11 +122,14 @@ describe("messages new (spec 002)", () => {
 });
 
 describe("messages de fase (spec 003)", () => {
-  it("phaseMissingId, phaseExtraArgs y phaseInvalidId", () => {
-    expect(phaseMissingId("plan")).toBe("Error: falta el número de la spec.\nUso: sdd plan <NNN>");
-    expect(phaseExtraArgs("tasks")).toBe("Error: argumentos no soportados.\nUso: sdd tasks <NNN>");
-    expect(phaseInvalidId("plan", "0021")).toBe(
+  it("idMissingError, idExtraArgsError e idInvalidError (specs 003-004)", () => {
+    expect(idMissingError("plan")).toBe("Error: falta el número de la spec.\nUso: sdd plan <NNN>");
+    expect(idExtraArgsError("tasks")).toBe("Error: argumentos no soportados.\nUso: sdd tasks <NNN>");
+    expect(idInvalidError("plan", "0021")).toBe(
       "Error: 0021 no es un número de spec válido (1-3 dígitos, p. ej. 002).\nUso: sdd plan <NNN>",
+    );
+    expect(idMissingError("validate")).toBe(
+      "Error: falta el número de la spec.\nUso: sdd validate <NNN>",
     );
   });
 
@@ -136,6 +156,72 @@ describe("messages de fase (spec 003)", () => {
     expect(phaseSuccess("plan", "specs/002-x/plan.md")).toBe("Plan creado: specs/002-x/plan.md");
     expect(phaseSuccess("tasks", "specs/002-x/tasks.md")).toBe(
       "Tareas creadas: specs/002-x/tasks.md",
+    );
+  });
+});
+
+describe("messages de validate (spec 004)", () => {
+  it("configMissing y configInvalid", () => {
+    expect(configMissing()).toBe("Error: falta sdd.json con los comandos de verificación.");
+    expect(configInvalid("JSON malformado")).toBe("Error: sdd.json inválido: JSON malformado");
+  });
+
+  it("validateTitle y verdictLine", () => {
+    expect(validateTitle("002-x")).toBe("Validando spec 002-x…");
+    expect(validateTitle("002-x")).toContain("\u2026");
+    expect(verdictLine("002-x", true)).toBe("Spec 002-x: LISTO");
+    expect(verdictLine("002-x", false)).toBe("Spec 002-x: NO LISTO");
+  });
+
+  it("artifactsLine con plurales (QA A11)", () => {
+    expect(artifactsLine([])).toBe("✓ Artefactos: spec.md, plan.md, tasks.md");
+    expect(artifactsLine(["plan.md"])).toBe("✗ Artefactos: falta plan.md");
+    expect(artifactsLine(["plan.md", "tasks.md"])).toBe("✗ Artefactos: faltan plan.md, tasks.md");
+  });
+
+  it("structureLine y traceLine", () => {
+    expect(structureRequiresSpec()).toBe("✗ Estructura: requiere spec.md");
+    expect(structureLine([])).toBe("✓ Estructura: todas las secciones de la plantilla");
+    expect(structureLine(["Casos límite"])).toBe("✗ Estructura: sin secciones: Casos límite");
+    expect(traceRequiresSpec()).toBe("✗ Trazabilidad: requiere spec.md");
+    expect(traceLine([], [])).toBe("✓ Trazabilidad: todos los RF cubiertos en plan.md y tasks.md");
+    expect(traceLine([1, 2], [2])).toBe(
+      "✗ Trazabilidad: sin cubrir en plan.md: RF-1, RF-2 · sin cubrir en tasks.md: RF-2",
+    );
+  });
+
+  it("tasksLine y variantes", () => {
+    expect(tasksRequiresFile()).toBe("✗ Tareas: requiere tasks.md");
+    expect(tasksStructureLine(true)).toBe("✗ Tareas: sin «Hecho cuando» en tasks.md");
+    expect(tasksStructureLine(false)).toBe("✗ Tareas: sin tareas en tasks.md");
+    expect(tasksLine(3, 3, [])).toBe("✓ Tareas: 3/3 completadas");
+    expect(tasksLine(1, 2, ["T2"])).toBe("✗ Tareas: 1/2 completadas (pendientes: T2)");
+    expect(tasksLine(0, 2, ["T1", "T2"])).toBe("✗ Tareas: 0/2 completadas (pendientes: T1, T2)");
+  });
+
+  it("constitutionLine y variantes", () => {
+    expect(constitutionLine()).toBe(
+      "✓ Constitución: docs/constitution.md (citada en spec/plan/tasks)",
+    );
+    expect(constitutionMissing()).toBe("✗ Constitución: falta docs/constitution.md");
+    expect(constitutionEmpty()).toBe("✗ Constitución: docs/constitution.md está vacío");
+    expect(constitutionUncited()).toBe(
+      "✗ Constitución: docs/constitution.md (sin citas en los artefactos)",
+    );
+  });
+
+  it("verdesLine con fallos y timeout", () => {
+    expect(verdesLine([{ command: "a", outcome: 0 }, { command: "b", outcome: 0 }])).toBe(
+      "✓ Verdes: 2/2 comandos",
+    );
+    expect(verdesLine([{ command: "a", outcome: 0 }, { command: "b", outcome: 1 }])).toBe(
+      "✗ Verdes: 1/2 comandos — b (exit 1)",
+    );
+    expect(verdesLine([{ command: "a", outcome: "timeout" }])).toBe(
+      "✗ Verdes: 0/1 comandos — a (timeout)",
+    );
+    expect(verdesLine([{ command: "a", outcome: 3 }, { command: "b", outcome: "timeout" }])).toBe(
+      "✗ Verdes: 0/2 comandos — a (exit 3) · b (timeout)",
     );
   });
 });

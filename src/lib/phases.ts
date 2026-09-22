@@ -6,12 +6,12 @@ import {
   createFileError,
   existsError,
   fileCreatedLine,
+  idExtraArgsError,
+  idInvalidError,
+  idMissingError,
   missingPlanFile,
   missingSpecFile,
   notInitializedError,
-  phaseExtraArgs,
-  phaseInvalidId,
-  phaseMissingId,
   phaseSuccess,
   phaseTitle,
   specAmbiguous,
@@ -61,15 +61,15 @@ export async function createPhaseFile(options: PhaseOptions): Promise<PhaseResul
   const command = options.phase;
   const args = options.args;
   if (args.length === 0) {
-    return { ok: false, message: phaseMissingId(command), exitCode: 1 };
+    return { ok: false, message: idMissingError(command), exitCode: 1 };
   }
   if (args.length > 1) {
-    return { ok: false, message: phaseExtraArgs(command), exitCode: 1 };
+    return { ok: false, message: idExtraArgsError(command), exitCode: 1 };
   }
   const input = args[0] ?? "";
   const nnn = parseSpecId(input);
   if (nnn === null) {
-    return { ok: false, message: phaseInvalidId(command, input), exitCode: 1 };
+    return { ok: false, message: idInvalidError(command, input), exitCode: 1 };
   }
 
   const specsDir = join(options.root, "specs");

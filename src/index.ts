@@ -3,9 +3,10 @@ import { initialize } from "./lib/init.js";
 import { unknownCommandError } from "./lib/messages.js";
 import { createSpec } from "./lib/new.js";
 import { createPhaseFile } from "./lib/phases.js";
+import { validateSpec } from "./lib/validate.js";
 
 type CliResult =
-  | { readonly ok: true; readonly lines: readonly string[]; readonly exitCode: 0 }
+  | { readonly ok: true; readonly lines: readonly string[]; readonly exitCode: 0 | 1 }
   | { readonly ok: false; readonly message: string; readonly exitCode: 1 };
 
 function print(result: CliResult): void {
@@ -28,6 +29,8 @@ if (command === "init") {
   print(await createSpec({ root: process.cwd(), slug: slug ?? "", args: extra }));
 } else if (command === "plan" || command === "tasks") {
   print(await createPhaseFile({ root: process.cwd(), phase: command, args: rest }));
+} else if (command === "validate") {
+  print(await validateSpec({ root: process.cwd(), args: rest }));
 } else {
   process.stderr.write(`${unknownCommandError(command)}\n`);
   process.exitCode = 1;

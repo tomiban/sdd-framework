@@ -93,7 +93,7 @@ export function newLimit(): string {
   return "Error: límite de 999 specs alcanzado.";
 }
 
-// --- Mensajes de `sdd plan` / `sdd tasks` (spec 003) ---
+// --- Mensajes de `sdd plan` / `sdd tasks` / `sdd validate` (specs 003-004) ---
 
 /**
  * Fases documentales del flujo SDD. Fuente única del union; `phases.ts` lo
@@ -101,15 +101,18 @@ export function newLimit(): string {
  */
 export type PhaseName = "plan" | "tasks";
 
-export function phaseMissingId(command: PhaseName): string {
+/** Comandos que resuelven una spec por `<NNN>` (renombrado D1, spec 004). */
+export type IdCommand = PhaseName | "validate";
+
+export function idMissingError(command: IdCommand): string {
   return `Error: falta el número de la spec.\nUso: sdd ${command} <NNN>`;
 }
 
-export function phaseExtraArgs(command: PhaseName): string {
+export function idExtraArgsError(command: IdCommand): string {
   return `Error: argumentos no soportados.\nUso: sdd ${command} <NNN>`;
 }
 
-export function phaseInvalidId(command: PhaseName, id: string): string {
+export function idInvalidError(command: IdCommand, id: string): string {
   return `Error: ${id} no es un número de spec válido (1-3 dígitos, p. ej. 002).\nUso: sdd ${command} <NNN>`;
 }
 
@@ -135,4 +138,106 @@ export function phaseTitle(phase: PhaseName): string {
 
 export function phaseSuccess(phase: PhaseName, path: string): string {
   return phase === "plan" ? `Plan creado: ${path}` : `Tareas creadas: ${path}`;
+}
+
+// --- Mensajes de `sdd validate <NNN>` (spec 004) ---
+
+export function configMissing(): string {
+  return "Error: falta sdd.json con los comandos de verificación.";
+}
+
+export function configInvalid(detail: string): string {
+  return `Error: sdd.json inválido: ${detail}`;
+}
+
+export function validateTitle(name: string): string {
+  return `Validando spec ${name}…`;
+}
+
+export function artifactsLine(missing: readonly string[]): string {
+  return missing.length === 0
+    ? "✓ Artefactos: spec.md, plan.md, tasks.md"
+    : `✗ Artefactos: ${missing.length === 1 ? "falta" : "faltan"} ${missing.join(", ")}`;
+}
+
+export function structureRequiresSpec(): string {
+  return "✗ Estructura: requiere spec.md";
+}
+
+export function structureLine(missing: readonly string[]): string {
+  return missing.length === 0
+    ? "✓ Estructura: todas las secciones de la plantilla"
+    : `✗ Estructura: sin secciones: ${missing.join(", ")}`;
+}
+
+export function traceRequiresSpec(): string {
+  return "✗ Trazabilidad: requiere spec.md";
+}
+
+export function traceLine(missingPlan: readonly number[], missingTasks: readonly number[]): string {
+  const parts: string[] = [];
+  if (missingPlan.length > 0) {
+    parts.push(`sin cubrir en plan.md: ${missingPlan.map((rf) => `RF-${rf}`).join(", ")}`);
+  }
+  if (missingTasks.length > 0) {
+    parts.push(`sin cubrir en tasks.md: ${missingTasks.map((rf) => `RF-${rf}`).join(", ")}`);
+  }
+  return parts.length === 0
+    ? "✓ Trazabilidad: todos los RF cubiertos en plan.md y tasks.md"
+    : `✗ Trazabilidad: ${parts.join(" · ")}`;
+}
+
+export function tasksRequiresFile(): string {
+  return "✗ Tareas: requiere tasks.md";
+}
+
+export function tasksStructureLine(hasTasks: boolean): string {
+  return hasTasks
+    ? "✗ Tareas: sin «Hecho cuando» en tasks.md"
+    : "✗ Tareas: sin tareas en tasks.md";
+}
+
+export function tasksLine(done: number, total: number, pendingIds: readonly string[]): string {
+  return pendingIds.length === 0
+    ? `✓ Tareas: ${done}/${total} completadas`
+    : `✗ Tareas: ${done}/${total} completadas (pendientes: ${pendingIds.join(", ")})`;
+}
+
+export function constitutionMissing(): string {
+  return "✗ Constitución: falta docs/constitution.md";
+}
+
+export function constitutionEmpty(): string {
+  return "✗ Constitución: docs/constitution.md está vacío";
+}
+
+export function constitutionUncited(): string {
+  return "✗ Constitución: docs/constitution.md (sin citas en los artefactos)";
+}
+
+export function constitutionLine(): string {
+  return "✓ Constitución: docs/constitution.md (citada en spec/plan/tasks)";
+}
+
+export interface VerifyOutcome {
+  readonly command: string;
+  readonly outcome: number | "timeout";
+}
+
+export function verdesLine(results: readonly VerifyOutcome[]): string {
+  const failed = results.filter((result) => result.outcome !== 0);
+  const done = results.length - failed.length;
+  if (failed.length === 0) {
+    return `✓ Verdes: ${done}/${results.length} comandos`;
+  }
+  const details = failed.map((result) =>
+    result.outcome === "timeout"
+      ? `${result.command} (timeout)`
+      : `${result.command} (exit ${result.outcome})`,
+  );
+  return `✗ Verdes: ${done}/${results.length} comandos — ${details.join(" · ")}`;
+}
+
+export function verdictLine(name: string, ready: boolean): string {
+  return `Spec ${name}: ${ready ? "LISTO" : "NO LISTO"}`;
 }
