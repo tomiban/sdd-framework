@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
-import { access, appendFile, copyFile, mkdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { access, appendFile, copyFile, mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   agentsCitedLine,
@@ -46,13 +47,36 @@ const CITES_PATTERN = /constitution\.md/i;
 type ConstitutionStatus = "created" | "exists" | "empty";
 /** 006: `absent` desaparece — init siempre deja `AGENTS.md`. */
 type AgentsStatus = "created" | "cited" | "appended";
+
+interface CopyItem {
+  readonly source: string | URL;
+  readonly destPath: string;
+  /** Ruta visible para el error (relativa al proyecto). */
+  readonly label: string;
+  readonly tree: boolean;
+}
+
+/** Rutas relativas de todos los archivos de un árbol (spec 008, `kind: "tree"`). */
+async function walkTree(root: string, prefix = ""): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      out.push(...(await walkTree(root, rel)));
+    } else {
+      out.push(rel);
+    }
+  }
+  return out.sort();
+}
+
 /**
- * Ejecuta `sdd init` (RF-1…RF-11 de la spec 001; RF-1…RF-8 de la spec 005,
- * que sustituye los bloques de salida de los RF-5/RF-6). Precondiciones en el
- * orden de QA A1 (005): 1) argumentos; 2) conflictos de directorio (001) y de
- * archivo (005); 3) escritura del cwd solo si hay algo que crear o añadir;
- * 4) directorios; 5) constitución (con rollback); 6) regla de `AGENTS.md`;
- * 7) líneas exactas.
+ * Ejecuta `sdd init` (RF-1…RF-11 de la spec 001; 005, 006 y 008 amplían qué
+ * se siembra). Precondiciones en el orden de QA A1 (005): 1) argumentos;
+ * 2) conflictos de directorio y de archivo; 3) escritura del cwd solo si hay
+ * algo que crear o añadir; 4) directorios; 5) plantillas faltantes (constitución,
+ * `AGENTS.md`, árbol `.opencode/`) con rollback por archivo; 6) regla de
+ * `AGENTS.md`; 7) líneas exactas (sin cambios por la 008, su RF-2).
  */
 export async function initialize(options: InitOptions): Promise<InitResult> {
   if (options.args.length > 0) {
@@ -116,8 +140,40 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
   const needConstitution = constitutionFile === "missing";
   const needAgents = agentsFile === "missing";
 
+  // RF-1 (005/006/008): plan de plantillas faltantes. `kind: "tree"` copia
+  // árboles solo con archivos ausentes (RF-2/008: jamás sobrescribe); el
+  // override `templatePath` aplica a plantillas sueltas, no al árbol.
+  const copyPlan: CopyItem[] = [];
+  const fileNeeded = new Map<string, boolean>([
+    [CONSTITUTION_PATH, needConstitution],
+    [AGENTS_PATH, needAgents],
+  ]);
+  for (const entry of templatesFor("init")) {
+    if (entry.kind === "tree") {
+      const treeRoot = fileURLToPath(resolveTemplateSource(entry.source));
+      for (const rel of await walkTree(treeRoot)) {
+        const destPath = join(options.root, entry.dest, rel);
+        if ((await fileStatus(destPath)) === "missing") {
+          copyPlan.push({
+            source: join(treeRoot, rel),
+            destPath,
+            label: `${entry.dest}/${rel}`,
+            tree: true,
+          });
+        }
+      }
+    } else if (fileNeeded.get(entry.dest)) {
+      copyPlan.push({
+        source: options.templatePath ?? resolveTemplateSource(entry.source),
+        destPath: join(options.root, entry.dest),
+        label: entry.dest,
+        tree: false,
+      });
+    }
+  }
+
   // RF-8 (QA A5/001, ampliado: también si hay que copiar o añadir).
-  if (missing.size > 0 || needConstitution || needAgents || needAgentsRule) {
+  if (missing.size > 0 || copyPlan.length > 0 || needAgentsRule) {
     try {
       await access(options.root, constants.W_OK);
     } catch {
@@ -143,30 +199,20 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
     }
   }
 
-  // RF-1 (005/006): plantillas de init faltantes (constitución #3), con rollback
-  // por archivo (QA A11/005, QA A6/006).
-  const copyNeeded = new Map<string, boolean>([
-    [CONSTITUTION_PATH, needConstitution],
-    [AGENTS_PATH, needAgents],
-  ]);
-  for (const entry of templatesFor("init")) {
-    if (!copyNeeded.get(entry.dest)) {
-      continue;
-    }
-    const dest = join(options.root, entry.dest);
+  // Copia del plan con rollback por archivo (QA A11/005, QA A5/008).
+  for (const item of copyPlan) {
     try {
-      const source = options.templatePath ?? resolveTemplateSource(entry.source);
-      await copyFile(source, dest);
+      await mkdir(dirname(item.destPath), { recursive: true });
+      await copyFile(item.source, item.destPath);
     } catch (error) {
-      // Rollback del archivo parcial recién creado.
       try {
-        await rm(dest, { force: true });
+        await rm(item.destPath, { force: true });
       } catch {
         // Rollback best-effort: se reporta el error original.
       }
       return {
         ok: false,
-        message: createFileError(entry.dest, (error as Error).message),
+        message: createFileError(item.label, (error as Error).message),
         exitCode: 1,
       };
     }
@@ -195,10 +241,12 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
   const agentsStatus: AgentsStatus =
     agentsFile === "missing" ? "created" : needAgentsRule ? "appended" : "cited";
 
-  // RF-6 (005): bloques exactos que sustituyen a los de la 001 (QA A7/A9).
+  // RF-6 (005): bloques exactos. La 008 no los cambia (su RF-2); sus copias
+  // del árbol cuentan como creación para el mensaje final (QA A4).
+  const treeCopied = copyPlan.some((item) => item.tree);
   return {
     ok: true,
-    lines: buildLines(state.elements, created, constitutionStatus, agentsStatus),
+    lines: buildLines(state.elements, created, constitutionStatus, agentsStatus, treeCopied),
     exitCode: 0,
   };
 }
@@ -208,10 +256,15 @@ function buildLines(
   created: ReadonlySet<string>,
   constitution: ConstitutionStatus,
   agents: AgentsStatus,
+  treeCopied: boolean,
 ): string[] {
   const rootNames = new Set(SDD_STRUCTURE.map((node) => node.name));
   const createdAny =
-    created.size > 0 || constitution === "created" || agents === "created" || agents === "appended";
+    created.size > 0 ||
+    constitution === "created" ||
+    agents === "created" ||
+    agents === "appended" ||
+    treeCopied;
   const lines: string[] = [initTitle(), ""];
 
   if (createdAny) {

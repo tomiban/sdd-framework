@@ -1,6 +1,7 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -18,6 +19,7 @@ const ALL_PATHS = [
 
 const RULE = "- Lee `docs/constitution.md` y la spec activa en `specs/` antes de tocar código.";
 const BAD_TEMPLATE = new URL("file:///ruta/que/no/existe/constitution.md");
+const OPENCOPY_ROOT = fileURLToPath(resolveTemplateSource("opencode"));
 
 // Bloques exactos de las specs 005/006 (sustituyen a los de la 001).
 const FIRST_RUN = [
@@ -149,11 +151,8 @@ describe("initialize", () => {
   });
 
   it("constitución existente y vacía: aviso ⚠ y código 0 (RF-2/005, CL-3)", async () => {
-    for (const path of ALL_PATHS) {
-      await mkdir(join(root, path), { recursive: true });
-    }
+    await initialize({ root, args: [] });
     await writeFile(join(root, "docs/constitution.md"), "   ");
-    await writeFile(join(root, "AGENTS.md"), "ver constitution.md");
 
     const result = await initialize({ root, args: [] });
 
@@ -317,11 +316,7 @@ describe("initialize", () => {
   });
 
   it("ya inicializado: no comprueba la escritura (QA A5/001)", async () => {
-    for (const path of ALL_PATHS) {
-      await mkdir(join(root, path), { recursive: true });
-    }
-    await writeFile(join(root, "docs/constitution.md"), "principios");
-    await writeFile(join(root, "AGENTS.md"), "ver constitution.md");
+    await initialize({ root, args: [] });
     if (process.getuid?.() === 0) {
       return;
     }
@@ -339,10 +334,7 @@ describe("initialize", () => {
     if (process.getuid?.() === 0) {
       return;
     }
-    for (const path of ALL_PATHS) {
-      await mkdir(join(root, path), { recursive: true });
-    }
-    await writeFile(join(root, "docs/constitution.md"), "principios");
+    await initialize({ root, args: [] });
     await chmod(join(root, "docs/constitution.md"), 0o000);
     try {
       const result = await initialize({ root, args: [] });
@@ -388,4 +380,73 @@ describe("initialize", () => {
     await expectPathNotExists("docs/constitution.md");
     await expectPathNotExists("AGENTS.md");
   });
+
+  it("popula .opencode/ desde el árbol de plantillas, skill incluida (RF-1/008, CL-1)", async () => {
+    const result = await initialize({ root, args: [] });
+
+    expect(result).toEqual({ ok: true, lines: FIRST_RUN, exitCode: 0 });
+
+    for (const rel of [
+      "agents/sdd-quick.md",
+      "commands/sdd-quick.md",
+      "commands/spec.md",
+      "skills/sdd/SKILL.md",
+    ]) {
+      const generated = await readFile(join(root, ".opencode", rel), "utf8");
+      const master = await readFile(join(OPENCOPY_ROOT, rel), "utf8");
+      expect(generated, rel).toBe(master);
+    }
+    expect(await readdir(join(root, ".opencode/agents"))).toHaveLength(7);
+  });
+
+  it("conserva archivos del usuario y solo copia los que faltan (RF-2/008, CL-2, CL-3, QA A4)", async () => {
+    await initialize({ root, args: [] });
+    await writeFile(join(root, ".opencode/agents/sdd-quick.md"), "MIO");
+    await rm(join(root, ".opencode/commands/spec.md"));
+
+    const result = await initialize({ root, args: [] });
+
+    expect(result).toEqual({
+      ok: true,
+      exitCode: 0,
+      lines: [
+        "Inicializando SDD…",
+        "",
+        "✓ docs/ ya existe",
+        "✓ specs/ ya existe",
+        "✓ .opencode/ ya existe",
+        "✓ .opencode/agents/ ya existe",
+        "✓ .opencode/commands/ ya existe",
+        "✓ .opencode/skills/ ya existe",
+        "✓ docs/constitution.md ya existe",
+        "✓ AGENTS.md ya cita docs/constitution.md",
+        "",
+        "SDD inicializado correctamente.",
+      ],
+    });
+    expect(await readFile(join(root, ".opencode/agents/sdd-quick.md"), "utf8")).toBe("MIO");
+    const restored = await readFile(join(root, ".opencode/commands/spec.md"), "utf8");
+    expect(restored).toBe(await readFile(join(OPENCOPY_ROOT, "commands/spec.md"), "utf8"));
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    "fallo copiando el árbol: error con la ruta y sin archivo parcial (RF-3/008, CL-4)",
+    async () => {
+      await initialize({ root, args: [] });
+      await rm(join(root, ".opencode/commands/spec.md"));
+      await chmod(join(root, ".opencode/commands"), 0o555);
+      try {
+        const result = await initialize({ root, args: [] });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.exitCode).toBe(1);
+          expect(result.message).toContain("Error: no se pudo crear .opencode/commands/spec.md:");
+        }
+        await expectPathNotExists(".opencode/commands/spec.md");
+      } finally {
+        await chmod(join(root, ".opencode/commands"), 0o755);
+      }
+    },
+  );
 });

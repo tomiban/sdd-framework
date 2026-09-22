@@ -7,6 +7,9 @@ export interface TemplateEntry {
   readonly dest: string;
   /** Nombre del archivo fuente dentro de `templates/`. */
   readonly source: string;
+  /** `file` (por defecto) copia un archivo; `tree` copia un árbol recursivo solo
+   * con archivos ausentes (spec 008). */
+  readonly kind?: "file" | "tree";
 }
 
 /**
@@ -20,6 +23,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
   { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
   { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
   { phase: "init", dest: "AGENTS.md", source: "agents.md" },
+  { phase: "init", dest: ".opencode", source: "opencode", kind: "tree" },
 ] as const;
 
 /**

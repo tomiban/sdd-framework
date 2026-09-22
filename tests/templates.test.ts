@@ -1,4 +1,5 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,20 @@ import {
   TEMPLATES,
   templatesFor,
 } from "../src/lib/templates.js";
+
+/** Rutas relativas de todos los archivos de un árbol, ordenadas. */
+async function walk(root: string, prefix = ""): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      out.push(...(await walk(root, rel)));
+    } else {
+      out.push(rel);
+    }
+  }
+  return out.sort();
+}
 
 const RULE = "- Lee `docs/constitution.md` y la spec activa en `specs/` antes de tocar código.";
 
@@ -42,6 +57,7 @@ describe("templates", () => {
       { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
       { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
       { phase: "init", dest: "AGENTS.md", source: "agents.md" },
+      { phase: "init", dest: ".opencode", source: "opencode", kind: "tree" },
     ]);
   });
 
@@ -54,7 +70,22 @@ describe("templates", () => {
     expect(templatesFor("init")).toEqual([
       { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
       { phase: "init", dest: "AGENTS.md", source: "agents.md" },
+      { phase: "init", dest: ".opencode", source: "opencode", kind: "tree" },
     ]);
+  });
+
+  it("templates/opencode/ ≡ .opencode/ del repo, byte a byte (spec 008, QA A2)", async () => {
+    const master = fileURLToPath(resolveTemplateSource("opencode"));
+    const project = fileURLToPath(new URL("../.opencode/", import.meta.url));
+
+    const rels = await walk(master);
+    expect(rels.length).toBeGreaterThan(0);
+    expect(rels).toEqual(await walk(project));
+    for (const rel of rels) {
+      expect(await readFile(join(master, rel), "utf8"), rel).toBe(
+        await readFile(join(project, rel), "utf8"),
+      );
+    }
   });
 
   it("cada template existe y contiene sus secciones", async () => {

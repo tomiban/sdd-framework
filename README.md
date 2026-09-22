@@ -48,8 +48,9 @@ reinstalar (o `npm link` de nuevo).
 
 ## Agentes y comandos de OpenCode
 
-El repo trae `.opencode/` provisionado. Para usar los agentes **solo en un proyecto**, copia (o
-enlaza) ese `.opencode/` dentro del proyecto; para tenerlos **en todos los proyectos**:
+El repo trae `.opencode/` provisionado y `sdd init` **lo instala automáticamente** en el proyecto
+(desde `templates/opencode/`, sin sobrescribir archivos tuyos). Para usar los agentes **en todos
+los proyectos**:
 
 ```bash
 mkdir -p ~/.config/opencode/agents ~/.config/opencode/commands
