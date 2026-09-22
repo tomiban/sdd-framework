@@ -36,15 +36,17 @@ chmod +x ~/.local/bin/sdd
 Asegúrate de que `~/.local/bin` está en el `PATH`. Para actualizar tras un `git pull`: `pnpm run
 build` (el wrapper siempre usa `dist/`).
 
-### Opción B — global con pnpm/npm
+### Opción B — global con el gestor de paquetes
 
 ```bash
 cd ~/Proyectos/sdd && pnpm run build
-pnpm add -g .        # o: npm link
+npm link              # crea el comando global `sdd` (enlazado al repo)
 ```
 
-Esto registra el comando `sdd` (vía el campo `bin` del paquete). Para actualizar: rebuild +
-reinstalar (o `npm link` de nuevo).
+`npm link` funciona sin configuración previa. Con pnpm haría falta inicializar su binario global
+una vez (`pnpm setup`) para poder hacer `pnpm add -g .`, que además instala una copia (para
+actualizar hay que reinstalar; con `npm link` basta `pnpm run build`). El binario aterriza en el
+directorio global de npm (p. ej. `~/.local/bin/sdd`), que debe estar en el `PATH`.
 
 ## Agentes y comandos de OpenCode
 
