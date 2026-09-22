@@ -48,6 +48,9 @@ configuración persistente. *(No aplica la tabla de persistencia del flujo gasto
 - **D8** — Nombres de elemento con slash final en la salida (`docs/`, `.opencode/agents/`):
   el manifiesto guarda nombres sin slash y el formateo añade `/`. El carácter `…` (U+2026) se usa
   literal en el título. Cubre RF-5/6, CL-8.
+- **D9** *(revelada en T4)* — El comando por defecto del CLI es `init`: `sdd` sin argumentos
+  equivale a `sdd init`. Se decide para que la primera invocación del CLI en un proyecto tenga el
+  comportamiento de arranque más útil. Cubre RF-1, RF-10.
 
 ## Modelo de datos (JSON)
 
