@@ -57,9 +57,9 @@
   002 y 003; `templatePath` inexistente → error con ruta y directorio eliminado (rollback).
 
 **Hecho cuando:**
-- [ ] `createSpec` crea el scaffold con el contenido exacto del template (byte a byte)
-- [ ] Fallo de copia → rollback del directorio y error con ruta (verificado en tmp dirs)
-- [ ] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
+- [x] `createSpec` crea el scaffold con el contenido exacto del template (byte a byte)
+- [x] Fallo de copia → rollback del directorio y error con ruta (verificado en tmp dirs)
+- [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
 
 ## T4 — CLI: dispatch de `new` + verificación manual
 
@@ -73,6 +73,6 @@
   `$? == 1`; slug inválido / sin slug → error uso + `$? == 1` sin crear nada.
 
 **Hecho cuando:**
-- [ ] `node dist/index.js new <slug>` reproduce la salida del RF-8 y el scaffold con `$? == 0`
-- [ ] Casos de error (repetido, sin specs/, slug inválido) → stderr + `$? == 1` sin crear nada
-- [ ] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde
+- [x] `node dist/index.js new <slug>` reproduce la salida del RF-8 y el scaffold con `$? == 0`
+- [x] Casos de error (repetido, sin specs/, slug inválido) → stderr + `$? == 1` sin crear nada
+- [x] `pnpm test`, `pnpm run typecheck` y `pnpm run build` en verde

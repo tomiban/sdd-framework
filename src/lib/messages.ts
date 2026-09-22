@@ -39,3 +39,49 @@ export function writeError(): string {
 export function createError(path: string, detail: string): string {
   return `Error: no se pudo crear ${path}/: ${detail}`;
 }
+
+// --- Mensajes de `sdd new <slug>` (spec 002) ---
+
+export function newTitle(): string {
+  return "Creando spec…";
+}
+
+export function newCreatedDir(path: string): string {
+  return `✓ Creado ${path}/`;
+}
+
+export function newCreatedFile(path: string): string {
+  return `✓ Creado ${path}`;
+}
+
+export function newSuccess(path: string): string {
+  return `Spec creada: ${path}/`;
+}
+
+export function newMissingSlug(): string {
+  return "Error: falta el nombre de la spec.\nUso: sdd new <slug>";
+}
+
+export function newExtraArgs(): string {
+  return "Error: argumentos no soportados.\nUso: sdd new <slug>";
+}
+
+export function newInvalidSlug(slug: string): string {
+  return `Error: ${slug} no es un nombre válido (usa kebab-case, p. ej. lista-gastos).\nUso: sdd new <slug>`;
+}
+
+export function newNotInitialized(): string {
+  return "Error: proyecto no inicializado. Ejecuta primero: sdd init";
+}
+
+export function newExists(path: string): string {
+  return `Error: ya existe ${path}/.`;
+}
+
+export function newLimit(): string {
+  return "Error: límite de 999 specs alcanzado.";
+}
+
+export function newWriteError(path: string, detail: string): string {
+  return `Error: no se pudo crear ${path}: ${detail}`;
+}

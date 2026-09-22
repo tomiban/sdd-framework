@@ -6,6 +6,17 @@ import {
   createdLine,
   existsLine,
   initTitle,
+  newCreatedDir,
+  newCreatedFile,
+  newExists,
+  newExtraArgs,
+  newInvalidSlug,
+  newLimit,
+  newMissingSlug,
+  newNotInitialized,
+  newSuccess,
+  newTitle,
+  newWriteError,
   successMessage,
   unknownCommandError,
   usageError,
@@ -45,5 +56,32 @@ describe("messages", () => {
   it("writeError y createError", () => {
     expect(writeError()).toBe("Error: no es posible escribir en el directorio actual.");
     expect(createError("docs", "EACCES")).toBe("Error: no se pudo crear docs/: EACCES");
+  });
+});
+
+describe("messages new (spec 002)", () => {
+  it("newTitle usa … (U+2026)", () => {
+    expect(newTitle()).toBe("Creando spec…");
+  });
+
+  it("newCreatedDir, newCreatedFile y newSuccess usan el path con formato", () => {
+    expect(newCreatedDir("specs/002-x")).toBe("✓ Creado specs/002-x/");
+    expect(newCreatedFile("specs/002-x/spec.md")).toBe("✓ Creado specs/002-x/spec.md");
+    expect(newSuccess("specs/002-x")).toBe("Spec creada: specs/002-x/");
+  });
+
+  it("errores de uso en castellano", () => {
+    expect(newMissingSlug()).toBe("Error: falta el nombre de la spec.\nUso: sdd new <slug>");
+    expect(newExtraArgs()).toBe("Error: argumentos no soportados.\nUso: sdd new <slug>");
+    expect(newInvalidSlug("Mi-Gasto")).toBe(
+      "Error: Mi-Gasto no es un nombre válido (usa kebab-case, p. ej. lista-gastos).\nUso: sdd new <slug>",
+    );
+  });
+
+  it("newNotInitialized, newExists, newLimit y newWriteError", () => {
+    expect(newNotInitialized()).toBe("Error: proyecto no inicializado. Ejecuta primero: sdd init");
+    expect(newExists("specs/002-x")).toBe("Error: ya existe specs/002-x/.");
+    expect(newLimit()).toBe("Error: límite de 999 specs alcanzado.");
+    expect(newWriteError("specs/002-x", "ENOENT")).toBe("Error: no se pudo crear specs/002-x: ENOENT");
   });
 });

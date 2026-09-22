@@ -18,6 +18,7 @@ contenido del proyecto, no persistencia de la aplicación: sin base de datos ni 
 | A7 | ¿Comprobación previa de escritura de `specs/`? | No hace falta pre-check: se intenta mkdir/escribir y ante error de fs se aplica rollback + error con ruta (RF-9); más simple y robusto que `access`. | RF-9 |
 | A8 | ¿`createSpec` debe también validar el slug y los argumentos? | Su función de biblioteca sigue el mismo orden de precondiciones (A1), recibiendo `args` — defensa en profundidad además del dispatch del CLI. | RF-3, RF-4 |
 | A9 | Salida RF-8: `Spec creada: specs/NNN-<slug>/` con barra final | Consistente con la convención de `init` (slash final en rutas de la salida). | RF-8 |
+| A10 | *Revelada en T3*: repetir el mismo slug con número distinto (002 → 003) no dispara RF-6 por ruta, así que la repetición creaba una spec nueva | El destino se comprueba también por slug: si existe `^\d{3}-<slug>$` en `specs/` → error «ya existe» sin crear nada (criterio #2 de finalización). Bug detectado por test: `rm` de rollback sobre un directorio exige `recursive: true` (si no lanza EISDIR y el directorio queda huérfano). | RF-6, NFR-5 |
 
 ## 2. Decisiones técnicas
 
