@@ -44,7 +44,8 @@ const AGENTS_PATH = "AGENTS.md";
 const CITES_PATTERN = /constitution\.md/i;
 
 type ConstitutionStatus = "created" | "exists" | "empty";
-type AgentsStatus = "absent" | "cited" | "appended";
+/** 006: `absent` desaparece — init siempre deja `AGENTS.md`. */
+type AgentsStatus = "created" | "cited" | "appended";
 /**
  * Ejecuta `sdd init` (RF-1…RF-11 de la spec 001; RF-1…RF-8 de la spec 005,
  * que sustituye los bloques de salida de los RF-5/RF-6). Precondiciones en el
@@ -113,9 +114,10 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
     state.elements.filter((element) => element.status === "missing").map((element) => element.path),
   );
   const needConstitution = constitutionFile === "missing";
+  const needAgents = agentsFile === "missing";
 
   // RF-8 (QA A5/001, ampliado: también si hay que copiar o añadir).
-  if (missing.size > 0 || needConstitution || needAgentsRule) {
+  if (missing.size > 0 || needConstitution || needAgents || needAgentsRule) {
     try {
       await access(options.root, constants.W_OK);
     } catch {
@@ -141,50 +143,57 @@ export async function initialize(options: InitOptions): Promise<InitResult> {
     }
   }
 
-  // RF-1 / RF-7 (005): constitución desde el template (constitución #3).
-  let constitutionStatus: ConstitutionStatus = constitutionEmpty ? "empty" : "exists";
-  if (needConstitution) {
+  // RF-1 (005/006): plantillas de init faltantes (constitución #3), con rollback
+  // por archivo (QA A11/005, QA A6/006).
+  const copyNeeded = new Map<string, boolean>([
+    [CONSTITUTION_PATH, needConstitution],
+    [AGENTS_PATH, needAgents],
+  ]);
+  for (const entry of templatesFor("init")) {
+    if (!copyNeeded.get(entry.dest)) {
+      continue;
+    }
+    const dest = join(options.root, entry.dest);
     try {
-      for (const entry of templatesFor("init")) {
-        const source = options.templatePath ?? resolveTemplateSource(entry.source);
-        await copyFile(source, join(options.root, entry.dest));
-      }
-      constitutionStatus = "created";
+      const source = options.templatePath ?? resolveTemplateSource(entry.source);
+      await copyFile(source, dest);
     } catch (error) {
-      // QA A11: rollback del archivo parcial recién creado.
+      // Rollback del archivo parcial recién creado.
       try {
-        await rm(constitutionAbs, { force: true });
+        await rm(dest, { force: true });
       } catch {
         // Rollback best-effort: se reporta el error original.
       }
       return {
         ok: false,
-        message: createFileError(CONSTITUTION_PATH, (error as Error).message),
+        message: createFileError(entry.dest, (error as Error).message),
         exitCode: 1,
       };
     }
   }
 
-  // RF-4 / RF-5 (005): regla aditiva en AGENTS.md (D5, CL-6).
-  let agentsStatus: AgentsStatus = "absent";
-  if (agentsFile === "exists") {
-    if (needAgentsRule) {
-      try {
-        const rule = await readFile(resolveTemplateSource(AGENTS_RULE_SOURCE), "utf8");
-        const prefix = agentsText !== "" && !agentsText.endsWith("\n") ? "\n" : "";
-        await appendFile(agentsAbs, `${prefix}${rule}`);
-        agentsStatus = "appended";
-      } catch (error) {
-        return {
-          ok: false,
-          message: appendError(AGENTS_PATH, (error as Error).message),
-          exitCode: 1,
-        };
-      }
-    } else {
-      agentsStatus = "cited";
+  // RF-2 (005): regla aditiva en AGENTS.md existente sin cita (CL-6/005, CL-5/006).
+  if (needAgentsRule) {
+    try {
+      const rule = await readFile(resolveTemplateSource(AGENTS_RULE_SOURCE), "utf8");
+      const prefix = agentsText !== "" && !agentsText.endsWith("\n") ? "\n" : "";
+      await appendFile(agentsAbs, `${prefix}${rule}`);
+    } catch (error) {
+      return {
+        ok: false,
+        message: appendError(AGENTS_PATH, (error as Error).message),
+        exitCode: 1,
+      };
     }
   }
+
+  const constitutionStatus: ConstitutionStatus = needConstitution
+    ? "created"
+    : constitutionEmpty
+      ? "empty"
+      : "exists";
+  const agentsStatus: AgentsStatus =
+    agentsFile === "missing" ? "created" : needAgentsRule ? "appended" : "cited";
 
   // RF-6 (005): bloques exactos que sustituyen a los de la 001 (QA A7/A9).
   return {
@@ -201,7 +210,8 @@ function buildLines(
   agents: AgentsStatus,
 ): string[] {
   const rootNames = new Set(SDD_STRUCTURE.map((node) => node.name));
-  const createdAny = created.size > 0 || constitution === "created" || agents === "appended";
+  const createdAny =
+    created.size > 0 || constitution === "created" || agents === "created" || agents === "appended";
   const lines: string[] = [initTitle(), ""];
 
   if (createdAny) {
@@ -226,9 +236,11 @@ function buildLines(
         ? constitutionEmptyWarn()
         : fileExistsLine(CONSTITUTION_PATH),
   );
-  if (agents === "cited") {
+  if (agents === "created") {
+    lines.push(fileCreatedLine(AGENTS_PATH));
+  } else if (agents === "cited") {
     lines.push(agentsCitedLine());
-  } else if (agents === "appended") {
+  } else {
     lines.push(agentsRuleAddedLine());
   }
 

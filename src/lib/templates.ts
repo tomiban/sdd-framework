@@ -19,6 +19,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
   { phase: "plan", dest: "plan.md", source: "plan.md" },
   { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
   { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
+  { phase: "init", dest: "AGENTS.md", source: "agents.md" },
 ] as const;
 
 /**

@@ -35,21 +35,25 @@ const PLAN_SECTIONS = [
 const TASKS_SECTIONS = ["## T1 —", "**RF:**", "**Hecho cuando:**"];
 
 describe("templates", () => {
-  it("el manifiesto etiqueta cada entrada con su fase (constitución #3, QA A10)", () => {
+  it("el manifiesto etiqueta cada entrada con su fase (constitución #3)", () => {
     expect(TEMPLATES).toEqual([
       { phase: "new", dest: "spec.md", source: "spec.md" },
       { phase: "plan", dest: "plan.md", source: "plan.md" },
       { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
       { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
+      { phase: "init", dest: "AGENTS.md", source: "agents.md" },
     ]);
   });
 
   it("templatesFor devuelve solo las entradas de cada fase", () => {
     expect(templatesFor("new")).toEqual([{ phase: "new", dest: "spec.md", source: "spec.md" }]);
     expect(templatesFor("plan")).toEqual([{ phase: "plan", dest: "plan.md", source: "plan.md" }]);
-    expect(templatesFor("tasks")).toEqual([{ phase: "tasks", dest: "tasks.md", source: "tasks.md" }]);
+    expect(templatesFor("tasks")).toEqual([
+      { phase: "tasks", dest: "tasks.md", source: "tasks.md" },
+    ]);
     expect(templatesFor("init")).toEqual([
       { phase: "init", dest: "docs/constitution.md", source: "constitution.md" },
+      { phase: "init", dest: "AGENTS.md", source: "agents.md" },
     ]);
   });
 
@@ -78,6 +82,14 @@ describe("templates", () => {
     expect(content).toContain("1. **");
     expect(content).toContain("6. **");
     expect(content.match(/Verificable:/g)).toHaveLength(6);
+  });
+
+  it("agents.md: ## Reglas con la línea sincronizada con agents-rule.md (spec 006, QA A2)", async () => {
+    const content = await readFile(resolveTemplateSource("agents.md"), "utf8");
+    const rule = await readFile(resolveTemplateSource(AGENTS_RULE_SOURCE), "utf8");
+
+    expect(content).toContain("## Reglas");
+    expect(content).toContain(rule.trim());
   });
 
   it("agents-rule.md: línea exacta de la regla (spec 005, RF-4)", async () => {
