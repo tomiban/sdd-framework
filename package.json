@@ -1,0 +1,26 @@
+{
+  "name": "sdd",
+  "version": "0.0.0",
+  "description": "CLI de Spec-Driven Development: inicializa y gestiona el flujo SDD en un proyecto.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "sdd": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.6.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "node --watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
